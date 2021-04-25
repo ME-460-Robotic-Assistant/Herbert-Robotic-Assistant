@@ -1,4 +1,5 @@
 # Herbert-Robotic-Assistant
+![Herbert_CAD](/images/Herbert_CAD.png)
 
 ## Purpose
 Herbert is a mobile object retrieval robotic assistant designed to improve the independece of ALS patients. Herbert can pick up a range of dropped objects and return them to a user seated in a wheelchair.
