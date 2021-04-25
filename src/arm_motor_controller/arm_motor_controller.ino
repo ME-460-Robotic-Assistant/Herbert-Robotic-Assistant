@@ -108,7 +108,7 @@ void loop() {
   
   DC2stopped = DC2.dcUpdate();
   
-  if(DC2stopped) DC1stopped = DC1.dcUpdate();
+  if(!DC2stopped) DC1stopped = DC1.dcUpdate();
 
   // Check for new angular_position message
   nh.spinOnce();
