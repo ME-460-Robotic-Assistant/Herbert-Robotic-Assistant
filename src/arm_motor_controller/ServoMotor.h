@@ -46,6 +46,7 @@ ServoMotor::ServoMotor(Servo* servo, Encoder* enc, double Kp, double Ki, double 
 
 int ServoMotor::servoUpdate(){
   // Turn the motor a given number of steps in a given direction
+  
 
   // Get the current position of the motor joint
   currentPos = enc->read();
@@ -81,6 +82,8 @@ int ServoMotor::servoUpdate(){
 
   if(vSet > MAX_V) vSet = MAX_V;
   if(vSet < -MAX_V) vSet = -MAX_V;
+
+  if (error > 0) vSet = 0.25*vSet;
   
   v = vSet;
 

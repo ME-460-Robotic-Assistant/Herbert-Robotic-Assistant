@@ -9,8 +9,13 @@
 #include "ServoMotor.h"
 
 
-ros::NodeHandle nh;
+//ros::NodeHandle nh;
 
+#define IR_BASE 18
+#define IR_ARM  19
+#define FSR_BOT 20
+#define FSR_TOP 21
+ 
 // Rotary Encoder 1 Pins
 #define ROTENCINTPIN1 5
 #define ROTENCDIRPIN1 0
@@ -41,6 +46,9 @@ ros::NodeHandle nh;
 #define SERVOPIN1 4
 #define SERVOPIN2 10
 
+bool objectDetected = false;
+bool collisionDetected = false;
+
 // Instantiate a object for each encoder
 // These objects use interrupts to update pulses, 2400 pulses/rev
 Encoder Enc1(ROTENCINTPIN1, ROTENCDIRPIN1);
@@ -55,8 +63,8 @@ Servo Servo2;
 
 // Instantiate ServoMotor objects to implement PID algorithm
 //ServoMotorSpeed S1 = ServoMotorSpeed(&Servo1, &Enc3, 0.5, 0.3, 0.1, 1);
-ServoMotor S1 = ServoMotor(&Servo1, &Enc3, 0.3, 0, 0.4, 1);
-ServoMotor S2 = ServoMotor(&Servo2, &Enc4, 0.2, 0, 0.1, 1);
+ServoMotor S1 = ServoMotor(&Servo1, &Enc3, 0.3, 0, 0.45, 1);
+ServoMotor S2 = ServoMotor(&Servo2, &Enc4, 0.4, 0, 0, 1);
 
 // Instantiate DCMotor objects to implement PID algorthm
 DCMotor DC1 = DCMotor(IN1, IN2, ENA1, &Enc1, 1, 0.5, 3, 1);
@@ -70,16 +78,27 @@ int DC2stopped = 1;
 int Servo1stopped = 1;
 int Servo2stopped = 1;
 
-void updateTarget( const geometry_msgs::Vector3& msg){
-  // ROS subscriber callback function, gets run each time a new message is recieved from the topic
-  DC1.setTarget((int) msg.x);
-  DC2.setTarget((int) msg.y);
-  S1.setTarget((int) msg.z);
+//void updateTarget( const geometry_msgs::Vector3& msg){
+//  // ROS subscriber callback function, gets run each time a new message is recieved from the topic
+//  DC1.setTarget((int) msg.x);
+//  DC2.setTarget((int) msg.y);
+//  S1.setTarget((int) msg.z);
+//}
+//
+//ros::Subscriber<geometry_msgs::Vector3> sub("chatter", &updateTarget );
+
+void stopAll(){
+  DC1.stopDC();
+  DC2.stopDC();
+  S1.stopServo();
+  S2.stopServo();
+  collisionDetected = true;
 }
 
-ros::Subscriber<geometry_msgs::Vector3> sub("chatter", &updateTarget );
-
 void setup() {
+
+  pinMode(IR_ARM, INPUT);
+  pinMode(IR_BASE, INPUT);
 
   Servo1.attach(SERVOPIN1);
   Servo2.attach(SERVOPIN2);
@@ -95,23 +114,55 @@ void setup() {
   S1.setTarget(920);
   S2.setTarget(0);
 
-  nh.initNode();
-  nh.subscribe(sub);
+//  nh.initNode();
+//  nh.subscribe(sub);
+  Serial.begin(9600);
 }
 
-void loop() {
- 
-  S2.setTarget(-(Enc1.read() + Enc2.read() + Enc3.read()));
-  Servo2stopped = S2.servoUpdate();
-  
-  Servo1stopped = S1.servoUpdate();
-  
-  DC2stopped = DC2.dcUpdate();
-  
-  if(!DC2stopped) DC1stopped = DC1.dcUpdate();
+int tar1 = 0, tar2 = -920, tar3 = 920;
 
+void loop() {
+ if (Serial.available() > 0) {
+    // read the incoming byte:
+    tar1 = Serial.parseInt();
+    tar2 = Serial.parseInt();
+    tar3 = Serial.parseInt();
+
+    DC1.setTarget(tar1);
+    DC2.setTarget(tar2);
+    S1.setTarget(tar3);
+
+    // say what you got:
+    Serial.println("I received: " + String(tar1) + " " + String(tar2) + " " + String(tar3));
+  }
+
+  /*
+  // Check sensors
+  if (analogRead(FSR_TOP) > 512) objectDetected = true; else objectDetected = false; // FSR sensor in end effector pan
+  if (analogRead(FSR_BOT) > 512) stopAll(); // FSR sensor on bottom of end effector
+  else if(digitalRead(IR_BASE)) stopAll(); // IR sensor on mounting plate
+  else if (digitalRead(IR_ARM)) stopAll(); // IR sensor on arm
+  else collisionDetected = false;
+  */
+  
+  if(!collisionDetected)
+  {
+    S2.setTarget(-(Enc1.read() - Enc2.read() + Enc3.read()));
+    Servo2stopped = S2.servoUpdate();
+    
+    Servo1stopped = S1.servoUpdate();
+    
+    DC2stopped = DC2.dcUpdate();
+    
+    if(!DC2stopped) 
+    {
+      DC2.stopDC();
+      DC1stopped = DC1.dcUpdate();
+    }
+  }
+  
   // Check for new angular_position message
-  nh.spinOnce();
+  // nh.spinOnce();
   delay(100);
 }
 

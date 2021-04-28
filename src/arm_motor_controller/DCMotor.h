@@ -32,6 +32,7 @@ class DCMotor{
   void setReverse()  { digitalWrite(in1, LOW);   digitalWrite(in2, HIGH); }
   void setVoltage(unsigned char v) { analogWrite(ena, v); }
   void setTarget(int tar)  { targetPos = orientation * tar; prevError = targetPos - enc->read(); }
+  void stopDC()      { setVoltage(0); setBrake(); }
   int dcUpdate();
 };
 
