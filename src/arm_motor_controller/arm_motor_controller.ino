@@ -11,7 +11,7 @@ A more detailed geometrical diagram is in the MATLAB section of the report.
 
 INITIAL (NEUTRAL) POSITION: Enc1 = -100, Enc2 = -920, Enc3 = 920
 
-LOWERED POSITION: Enc1 = -100, Enc2 = 200, Enc3 = 300
+LOWERED POSITION: Enc1 = -100, Enc2 = 500, Enc3 = 200
 
 DONT DO THE RAISED POSITION FOR NOW
 RAISED POSITION: Enc1 = -100, Enc2 = -920, Enc3 = 500
