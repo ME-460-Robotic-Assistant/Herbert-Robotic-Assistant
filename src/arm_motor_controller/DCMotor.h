@@ -15,6 +15,7 @@ class DCMotor{
   int orientation;
 
   int currentPos,
+      incTarget,
       targetPos,
       error = 0,
       prevError = 0,
@@ -31,7 +32,8 @@ class DCMotor{
   void setForward()  { digitalWrite(in1, HIGH);  digitalWrite(in2, LOW);  }
   void setReverse()  { digitalWrite(in1, LOW);   digitalWrite(in2, HIGH); }
   void setVoltage(unsigned char v) { analogWrite(ena, v); }
-  void setTarget(int tar)  { targetPos = orientation * tar; prevError = targetPos - enc->read(); }
+  void setTarget(int tar)  { targetPos = orientation * tar; prevError = targetPos - enc->read(); incTarget = enc->read(); }
+  int getTarget() { return targetPos; }
   void stopDC()      { setVoltage(0); setBrake(); }
   int dcUpdate();
 };
@@ -61,6 +63,10 @@ DCMotor::DCMotor(byte in1, byte in2, byte ena, Encoder* enc, double Kp, double K
 
 int DCMotor::dcUpdate(){
   // Turn the motor a given number of steps in a given direction
+
+  if(targetPos - incTarget > 10) incTarget += 10;
+  else if(targetPos - incTarget < -10) incTarget -= 10;
+  else incTarget = targetPos;
 
   // Get the current position of the motor joint
   currentPos = enc->read();

@@ -1,5 +1,5 @@
-#ifndef SERVOMOTOR_H
-#define SERVOMOTOR_H
+#ifndef SERVOMOTORINC_H
+#define SERVOMOTORINC_H
 
 #define ANTI_WIND_UP_LIMIT 10000
 #define MAX_V 90
@@ -7,13 +7,16 @@
 #include <Encoder.h>
 #include <Servo.h>
 
-class ServoMotor{
+class ServoMotorInc{
   private:
   int orientation;
   Encoder* enc;
+  Encoder* enc1;
+  Encoder* enc2;
   Servo* servo;
 
   int currentPos,
+      incTarget,
       targetPos,
       error = 0,
       prevError = 0;
@@ -25,15 +28,17 @@ class ServoMotor{
           
   
   public:
-  ServoMotor(Servo* servo, Encoder* enc, double Kp, double Ki, double Kd, int orientation);
-  void setTarget(int tar)  { targetPos = orientation * tar; prevError = targetPos - enc->read();}
-  void stopServo() { servo->write(90);}
+  ServoMotorInc(Servo* servo, Encoder* enc, Encoder* enc1, Encoder* enc2, double Kp, double Ki, double Kd, int orientation);
+  void setTarget(int tar)  { targetPos = orientation * tar; prevError = targetPos - enc->read(); incTarget = enc->read();}
+  void stopServo() { servo->write(90); }
   int servoUpdate();
 };
 
-ServoMotor::ServoMotor(Servo* servo, Encoder* enc, double Kp, double Ki, double Kd, int orientation){
+ServoMotorInc::ServoMotorInc(Servo* servo, Encoder* enc, Encoder* enc1, Encoder* enc2, double Kp, double Ki, double Kd, int orientation){
   this->servo = servo;
   this->enc = enc;
+  this->enc1 = enc1;
+  this->enc2 = enc2;  
   this->Kp = Kp;
   this->Ki = Ki;
   this->Kd = Kd;
@@ -44,14 +49,18 @@ ServoMotor::ServoMotor(Servo* servo, Encoder* enc, double Kp, double Ki, double 
   stopServo();
 }
 
-int ServoMotor::servoUpdate(){
+int ServoMotorInc::servoUpdate(){
   // Turn the motor a given number of steps in a given direction
+
+  if(targetPos - incTarget > 20) incTarget += 20;
+  else if(targetPos - incTarget < -50) incTarget -= 50;
+  else incTarget = targetPos;
 
   // Get the current position of the motor joint
   currentPos = enc->read();
 
   // Calculate the error between the the current and target position
-  error = targetPos - currentPos;
+  error = incTarget - currentPos;
 
   // Calculate the current speed of the arm movement (decreases as 
   derivative = error - prevError;
@@ -82,7 +91,8 @@ int ServoMotor::servoUpdate(){
   if(vSet > MAX_V) vSet = MAX_V;
   if(vSet < -MAX_V) vSet = -MAX_V;
 
-  if (error > 0) vSet = 0.25*vSet;
+  if (-(enc1->read() - enc2->read() + enc->read()) -100 < 600 && currentPos < targetPos) vSet = 0.25*vSet;
+  else if (-(enc1->read() - enc2->read() + enc->read()) -100 > 600 && currentPos > targetPos) vSet = 0.25*vSet;
   
   v = vSet;
 
