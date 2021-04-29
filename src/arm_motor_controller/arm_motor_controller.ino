@@ -122,7 +122,7 @@ void setup() {
   Enc1.write(-100);
   Enc2.write(920);
   Enc3.write(920);
-  Enc4.write(0);
+  Enc4.write(500);
 
   DC1.setTarget(-100);
   DC2.setTarget(-920);
